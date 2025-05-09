@@ -5,15 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavType
+import androidx.navigation.*
 import androidx.navigation.compose.*
 import java.time.LocalDate
-import java.util.Base64
 import java.time.format.DateTimeFormatter
 
 class MainActivity : ComponentActivity() {
@@ -65,4 +59,3 @@ fun CalendarApp() {
         }
     }
 }
-
