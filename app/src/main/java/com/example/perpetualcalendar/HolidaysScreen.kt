@@ -1,13 +1,16 @@
 package com.example.perpetualcalendar
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 
 @Composable
@@ -18,6 +21,7 @@ fun HolidayScreen(
 ) {
     var year by remember { mutableStateOf(2024) }
     var yearText by remember { mutableStateOf(year.toString()) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val easter = remember(year) { getEasterDate(year) }
     val popielec = easter.minusDays(46)
@@ -31,6 +35,14 @@ fun HolidayScreen(
         temp.minusDays(21)
     }
 
+    // Define a list of holidays
+    val holidays = listOf(
+        "Popielec" to popielec,
+        "Wielkanoc" to easter,
+        "Boże Ciało" to bozeCialo,
+        "Adwent" to adwent
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -38,31 +50,73 @@ fun HolidayScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Title Text
         Text("Wybierz rok", style = MaterialTheme.typography.headlineMedium)
 
+        // Year Input Field with Enlarged Font
         TextField(
             value = yearText,
             onValueChange = {
                 yearText = it
                 val parsedYear = it.toIntOrNull()
+
                 if (parsedYear != null && parsedYear in 1900..2200) {
                     year = parsedYear
+                    errorMessage = null // Clear error if valid
+                } else {
+                    errorMessage = "Rok musi być pomiędzy 1900 a 2200" // Set error message
                 }
             },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            label = { Text("Rok") }
+            label = { Text("Rok") },
+            textStyle = TextStyle(fontSize = 24.sp) // Enlarging the font size to 24sp
         )
+
+        // Show error message if invalid year
+        errorMessage?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
 
         Divider()
 
-        Text("Popielec: $popielec", style = MaterialTheme.typography.bodyLarge)
-        Text("Wielkanoc: $easter", style = MaterialTheme.typography.bodyLarge)
-        Text("Boże Ciało: $bozeCialo", style = MaterialTheme.typography.bodyLarge)
-        Text("Adwent: $adwent", style = MaterialTheme.typography.bodyLarge)
+        // Holiday List
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(holidays) { (holidayName, holidayDate) ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = holidayName,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = holidayDate.toString(),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Buttons for Navigation
         Button(
             onClick = { onShowSundays(year, easter) },
             modifier = Modifier.fillMaxWidth().height(56.dp)
@@ -85,7 +139,6 @@ fun HolidayScreen(
         }
     }
 }
-
 
 fun getEasterDate(year: Int): LocalDate {
     val a = year % 19

@@ -1,14 +1,12 @@
 package com.example.perpetualcalendar
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 @Composable
 fun DateDiffScreen(onBack: () -> Unit) {
@@ -21,78 +19,145 @@ fun DateDiffScreen(onBack: () -> Unit) {
     var endDay by remember { mutableStateOf("") }
 
     var result by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Oblicz różnicę dni", style = MaterialTheme.typography.headlineMedium)
 
+        // Start Date Inputs
         Text("Data początkowa", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextField(
                 value = startYear,
                 onValueChange = { startYear = it },
                 label = { Text("Rok") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                isError = errorMessage != null
             )
             TextField(
                 value = startMonth,
                 onValueChange = { startMonth = it },
                 label = { Text("Miesiąc") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                isError = errorMessage != null
             )
             TextField(
                 value = startDay,
                 onValueChange = { startDay = it },
                 label = { Text("Dzień") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                isError = errorMessage != null
             )
         }
 
+        // End Date Inputs
         Text("Data końcowa", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextField(
                 value = endYear,
                 onValueChange = { endYear = it },
                 label = { Text("Rok") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                isError = errorMessage != null
             )
             TextField(
                 value = endMonth,
                 onValueChange = { endMonth = it },
                 label = { Text("Miesiąc") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                isError = errorMessage != null
             )
             TextField(
                 value = endDay,
                 onValueChange = { endDay = it },
                 label = { Text("Dzień") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                isError = errorMessage != null
             )
         }
 
-        Button(
-            onClick = {
-                try {
-                    val start = LocalDate.of(
-                        startYear.toInt(), startMonth.toInt(), startDay.toInt()
-                    )
-                    val end = LocalDate.of(
-                        endYear.toInt(), endMonth.toInt(), endDay.toInt()
-                    )
-                    result = "Różnica: ${kotlin.math.abs(java.time.temporal.ChronoUnit.DAYS.between(start, end))} dni"
-                } catch (e: Exception) {
-                    result = "Nieprawidłowe dane"
-                }
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp)
-        ) {
-            Text("Oblicz", style = MaterialTheme.typography.bodyLarge)
+        // Display Error Message
+        errorMessage?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
 
+        // Calculate Difference Button
+        Button(
+            onClick = {
+                // Clear previous error
+                errorMessage = null
+
+                try {
+                    val startYearInt = startYear.toInt()
+                    val startMonthInt = startMonth.toInt()
+                    val startDayInt = startDay.toInt()
+                    val endYearInt = endYear.toInt()
+                    val endMonthInt = endMonth.toInt()
+                    val endDayInt = endDay.toInt()
+
+                    // Validate inputs
+                    if (startYearInt < 1900 || startYearInt > 2200 || endYearInt < 1900 || endYearInt > 2200) {
+                        throw IllegalArgumentException("Rok musi być pomiędzy 1900 a 2200")
+                    }
+                    if (startMonthInt < 1 || startMonthInt > 12 || endMonthInt < 1 || endMonthInt > 12) {
+                        throw IllegalArgumentException("Miesiąc musi być pomiędzy 1 a 12")
+                    }
+                    if (startDayInt < 1 || startDayInt > 31 || endDayInt < 1 || endDayInt > 31) {
+                        throw IllegalArgumentException("Dzień musi być pomiędzy 1 a 31")
+                    }
+
+                    // Create LocalDate objects
+                    val start = LocalDate.of(startYearInt, startMonthInt, startDayInt)
+                    val end = LocalDate.of(endYearInt, endMonthInt, endDayInt)
+
+                    // Perform calculation
+                    val from = if (start <= end) start else end
+                    val to = if (start <= end) end else start
+
+                    val holidays = mutableSetOf<LocalDate>()
+                    for (year in from.year..to.year) {
+                        holidays += getPolishPublicHolidays(year)
+                    }
+
+                    var workdays = 0
+                    var current = from
+                    while (!current.isAfter(to)) {
+                        val dow = current.dayOfWeek.value
+                        if (dow in 1..5 && current !in holidays) {
+                            workdays++
+                        }
+                        current = current.plusDays(1)
+                    }
+
+                    val daysBetween = ChronoUnit.DAYS.between(start, end).let { kotlin.math.abs(it) }
+
+                    result = "Różnica: $daysBetween dni\nDni robocze (bez świąt): $workdays"
+
+                } catch (e: NumberFormatException) {
+                    errorMessage = "Proszę podać poprawne liczby"
+                } catch (e: IllegalArgumentException) {
+                    errorMessage = e.message
+                } catch (e: Exception) {
+                    errorMessage = "Nieprawidłowe dane"
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text("Oblicz", style = MaterialTheme.typography.titleMedium)
+        }
+
+        // Display the result
         result?.let {
             Text(it, style = MaterialTheme.typography.titleLarge)
         }
@@ -100,7 +165,30 @@ fun DateDiffScreen(onBack: () -> Unit) {
         Spacer(modifier = Modifier.height(12.dp))
 
         Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("Powrót")
+            Text("Powrót", style = MaterialTheme.typography.titleMedium)
         }
     }
+}
+
+fun getPolishPublicHolidays(year: Int): Set<LocalDate> {
+    val fixed = setOf(
+        LocalDate.of(year, 1, 1),
+        LocalDate.of(year, 1, 6),
+        LocalDate.of(year, 5, 1),
+        LocalDate.of(year, 5, 3),
+        LocalDate.of(year, 8, 15),
+        LocalDate.of(year, 11, 1),
+        LocalDate.of(year, 11, 11),
+        LocalDate.of(year, 12, 25),
+        LocalDate.of(year, 12, 26)
+    )
+
+    val easter = getEasterDate(year)
+    val movable = setOf(
+        easter,
+        easter.plusDays(1),   // Easter Monday
+        easter.plusDays(60)   // Corpus Christi
+    )
+
+    return fixed + movable
 }

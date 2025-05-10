@@ -22,29 +22,47 @@ fun WorkdaysScreen(
 
     Column(
         modifier = Modifier
-            .padding(16.dp)
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
+        // Title Text
         Text(
             text = "Dni robocze",
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
         )
 
+        // Lazy Column for Workdays
         LazyColumn(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(workdays) { day ->
-                Text(
-                    text = day,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Text(
+                        text = day,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
             }
         }
 
-        Button(onClick = { onBack() }) {
-            Text("Powrót")
+        // Spacer to add some space between list and button
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Back Button
+        Button(
+            onClick = { onBack() },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Powrót", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
