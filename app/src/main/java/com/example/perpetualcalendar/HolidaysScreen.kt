@@ -1,24 +1,29 @@
 package com.example.perpetualcalendar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 
 @Composable
 fun HolidayScreen(
     onShowSundays: (Int, LocalDate) -> Unit,
-    onShowWorkdays: () -> Unit
+    onShowWorkdays: () -> Unit,
+    onShowDateDiff: () -> Unit
 ) {
     var year by remember { mutableStateOf(2024) }
+    var yearText by remember { mutableStateOf(year.toString()) }
 
     val easter = remember(year) { getEasterDate(year) }
     val popielec = easter.minusDays(46)
     val bozeCialo = easter.plusDays(60)
 
-    var adwent = remember(year) {
+    val adwent = remember(year) {
         var temp = LocalDate.of(year, 12, 24)
         while (temp.dayOfWeek.value != 7) {
             temp = temp.minusDays(1)
@@ -28,40 +33,59 @@ fun HolidayScreen(
 
     Column(
         modifier = Modifier
-            .padding(16.dp)
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Wybierz rok", style = MaterialTheme.typography.headlineSmall)
+        Text("Wybierz rok", style = MaterialTheme.typography.headlineMedium)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { if (year > 1900) year-- }) {
-                Text("-")
-            }
-            Text(year.toString(), style = MaterialTheme.typography.titleLarge)
-            Button(onClick = { if (year < 2200) year++ }) {
-                Text("+")
-            }
-        }
+        TextField(
+            value = yearText,
+            onValueChange = {
+                yearText = it
+                val parsedYear = it.toIntOrNull()
+                if (parsedYear != null && parsedYear in 1900..2200) {
+                    year = parsedYear
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("Rok") }
+        )
 
         Divider()
 
-        Text("Popielec: $popielec")
-        Text("Wielkanoc: $easter")
-        Text("Boże Ciało: $bozeCialo")
-        Text("Adwent: $adwent")
+        Text("Popielec: $popielec", style = MaterialTheme.typography.bodyLarge)
+        Text("Wielkanoc: $easter", style = MaterialTheme.typography.bodyLarge)
+        Text("Boże Ciało: $bozeCialo", style = MaterialTheme.typography.bodyLarge)
+        Text("Adwent: $adwent", style = MaterialTheme.typography.bodyLarge)
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { onShowSundays(year, easter) }) {
-            Text("Pokaż niedziele handlowe")
+        Button(
+            onClick = { onShowSundays(year, easter) },
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            Text("Pokaż niedziele handlowe", style = MaterialTheme.typography.bodyLarge)
         }
 
-        Button(onClick = { onShowWorkdays() }) {
-            Text("Pokaż dni robocze")
+        Button(
+            onClick = { onShowWorkdays() },
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            Text("Pokaż dni robocze", style = MaterialTheme.typography.bodyLarge)
+        }
+
+        Button(
+            onClick = { onShowDateDiff() },
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            Text("Oblicz różnicę dni", style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
+
 
 fun getEasterDate(year: Int): LocalDate {
     val a = year % 19
