@@ -13,11 +13,11 @@ fun WorkdaysScreen(
     onBack: () -> Unit
 ) {
     val workdays = listOf(
-        "Poniedziałek", // Monday
-        "Wtorek",       // Tuesday
-        "Środa",        // Wednesday
-        "Czwartek",     // Thursday
-        "Piątek"        // Friday
+        "Poniedziałek",
+        "Wtorek",
+        "Środa",
+        "Czwartek",
+        "Piątek"
     )
 
     Column(
@@ -26,14 +26,12 @@ fun WorkdaysScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Title Text
         Text(
             text = "Dni robocze",
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // Lazy Column for Workdays
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -54,10 +52,8 @@ fun WorkdaysScreen(
             }
         }
 
-        // Spacer to add some space between list and button
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Back Button
         Button(
             onClick = { onBack() },
             modifier = Modifier.fillMaxWidth()

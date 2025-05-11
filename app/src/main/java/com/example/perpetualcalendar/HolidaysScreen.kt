@@ -35,7 +35,6 @@ fun HolidayScreen(
         temp.minusDays(21)
     }
 
-    // Define a list of holidays
     val holidays = listOf(
         "Popielec" to popielec,
         "Wielkanoc" to easter,
@@ -50,10 +49,8 @@ fun HolidayScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Title Text
         Text("Wybierz rok", style = MaterialTheme.typography.headlineMedium)
 
-        // Year Input Field with Enlarged Font
         TextField(
             value = yearText,
             onValueChange = {
@@ -62,18 +59,17 @@ fun HolidayScreen(
 
                 if (parsedYear != null && parsedYear in 1900..2200) {
                     year = parsedYear
-                    errorMessage = null // Clear error if valid
+                    errorMessage = null
                 } else {
-                    errorMessage = "Rok musi być pomiędzy 1900 a 2200" // Set error message
+                    errorMessage = "Rok musi być pomiędzy 1900 a 2200"
                 }
             },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             label = { Text("Rok") },
-            textStyle = TextStyle(fontSize = 24.sp) // Enlarging the font size to 24sp
+            textStyle = TextStyle(fontSize = 24.sp)
         )
 
-        // Show error message if invalid year
         errorMessage?.let {
             Text(
                 text = it,
@@ -84,7 +80,6 @@ fun HolidayScreen(
 
         Divider()
 
-        // Holiday List
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -116,7 +111,6 @@ fun HolidayScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Buttons for Navigation
         Button(
             onClick = { onShowSundays(year, easter) },
             modifier = Modifier.fillMaxWidth().height(56.dp)

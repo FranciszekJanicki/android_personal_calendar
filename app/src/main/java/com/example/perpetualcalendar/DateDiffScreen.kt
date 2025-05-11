@@ -29,7 +29,6 @@ fun DateDiffScreen(onBack: () -> Unit) {
     ) {
         Text("Oblicz różnicę dni", style = MaterialTheme.typography.headlineMedium)
 
-        // Start Date Inputs
         Text("Data początkowa", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextField(
@@ -55,7 +54,6 @@ fun DateDiffScreen(onBack: () -> Unit) {
             )
         }
 
-        // End Date Inputs
         Text("Data końcowa", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextField(
@@ -81,7 +79,6 @@ fun DateDiffScreen(onBack: () -> Unit) {
             )
         }
 
-        // Display Error Message
         errorMessage?.let {
             Text(
                 text = it,
@@ -90,10 +87,8 @@ fun DateDiffScreen(onBack: () -> Unit) {
             )
         }
 
-        // Calculate Difference Button
         Button(
             onClick = {
-                // Clear previous error
                 errorMessage = null
 
                 try {
@@ -115,11 +110,9 @@ fun DateDiffScreen(onBack: () -> Unit) {
                         throw IllegalArgumentException("Dzień musi być pomiędzy 1 a 31")
                     }
 
-                    // Create LocalDate objects
                     val start = LocalDate.of(startYearInt, startMonthInt, startDayInt)
                     val end = LocalDate.of(endYearInt, endMonthInt, endDayInt)
 
-                    // Perform calculation
                     val from = if (start <= end) start else end
                     val to = if (start <= end) end else start
 
@@ -157,7 +150,6 @@ fun DateDiffScreen(onBack: () -> Unit) {
             Text("Oblicz", style = MaterialTheme.typography.titleMedium)
         }
 
-        // Display the result
         result?.let {
             Text(it, style = MaterialTheme.typography.titleLarge)
         }
@@ -186,8 +178,8 @@ fun getPolishPublicHolidays(year: Int): Set<LocalDate> {
     val easter = getEasterDate(year)
     val movable = setOf(
         easter,
-        easter.plusDays(1),   // Easter Monday
-        easter.plusDays(60)   // Corpus Christi
+        easter.plusDays(1),
+        easter.plusDays(60)
     )
 
     return fixed + movable

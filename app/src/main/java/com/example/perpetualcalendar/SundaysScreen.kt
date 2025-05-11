@@ -78,12 +78,10 @@ fun getCommercialSundays(year: Int, easter: LocalDate?): List<LocalDate> {
         result.add(lastSunday)
     }
 
-    // Easter Sunday
     if (easter != null) {
         result.add(findLastSundayBefore(easter.plusDays(1)))
     }
 
-    // Two Sundays before and on Christmas Eve
     result.add(findLastSundayBefore(LocalDate.of(year, 12, 17)))
     result.add(findLastSundayBefore(LocalDate.of(year, 12, 24)))
 

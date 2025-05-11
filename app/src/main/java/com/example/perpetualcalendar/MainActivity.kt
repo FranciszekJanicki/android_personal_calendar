@@ -30,7 +30,7 @@ fun CalendarApp() {
         NavHost(
             navController = navController,
             startDestination = "main",
-            modifier = Modifier.fillMaxSize() // Important!
+            modifier = Modifier.fillMaxSize()
         ) {
             composable("main") {
                 HolidayScreen(
