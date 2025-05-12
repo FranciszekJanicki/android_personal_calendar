@@ -2,35 +2,27 @@ package com.example.perpetualcalendar
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import java.time.LocalDate
-
-data class Holiday(val name: String, val date: LocalDate)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HolidaysScreen(navController: NavController) {
-    val holidays = remember {
-        listOf(
-            Holiday("Nowy Rok", LocalDate.of(2024, 1, 1)),
-            Holiday("Wielkanoc", LocalDate.of(2024, 3, 31)),
-            Holiday("Boże Ciało", LocalDate.of(2024, 5, 30)),
-            Holiday("Święto Niepodległości", LocalDate.of(2024, 11, 11)),
-            Holiday("Boże Narodzenie", LocalDate.of(2024, 12, 25))
-        )
-    }
+fun ShoppingListScreen(navController: NavController) {
+    var input by remember { mutableStateOf("") }
+    val shoppingList = remember { mutableStateListOf<String>() }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Święta") },
+                title = { Text("Lista zakupów") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Wróć")
@@ -45,12 +37,32 @@ fun HolidaysScreen(navController: NavController) {
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
-            Text("Publiczne święta w 2024 roku:", style = MaterialTheme.typography.headlineMedium)
+            Row(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    label = { Text("Dodaj produkt") },
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = {
+                        if (input.isNotBlank()) {
+                            shoppingList.add(input.trim())
+                            input = ""
+                        }
+                    }
+                ) {
+                    Icon(Icons.Default.ShoppingCart, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Dodaj")
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             LazyColumn {
-                items(holidays) { holiday ->
+                itemsIndexed(shoppingList) { index, item ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -62,8 +74,10 @@ fun HolidaysScreen(navController: NavController) {
                                 .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(holiday.name)
-                            Text(holiday.date.toString())
+                            Text(item)
+                            IconButton(onClick = { shoppingList.removeAt(index) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Usuń")
+                            }
                         }
                     }
                 }
