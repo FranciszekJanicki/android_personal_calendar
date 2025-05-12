@@ -14,10 +14,7 @@ import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 
 @Composable
-fun HolidayScreen(
-    onShowSundays: (Int, LocalDate) -> Unit,
-    onShowWorkdays: () -> Unit,
-    onShowDateDiff: () -> Unit
+fun HolidayScreen(currDate : LocalDate, onBack: () -> Unit
 ) {
     var year by remember { mutableStateOf(2024) }
     var yearText by remember { mutableStateOf(year.toString()) }
@@ -151,3 +148,13 @@ fun getEasterDate(year: Int): LocalDate {
     val day = ((h + l - 7 * m + 114) % 31) + 1
     return LocalDate.of(year, month, day)
 }
+
+// eventy, mozliwosc dodawania informacji
+// daty swiat
+// notyfikacje push
+// integracja z kalendarzem systemowym
+// ile dni do konca eventu
+// personalny kalendarz z eventami
+// lista zakupow
+// data poczatkowa i koncowa eventu, cyklicznosc
+//

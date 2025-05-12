@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun CalendarApp() {
     val navController = rememberNavController()
+    val currDate = remember { mutableStateOf<LocalDate>() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -33,10 +34,15 @@ fun CalendarApp() {
             modifier = Modifier.fillMaxSize()
         ) {
             composable("main") {
-                HolidayScreen(
-                    onShowSundays = { year, easter ->
-                        val easterEncoded = easter.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                        navController.navigate("sundays/$year/$easterEncoded")
+                MainScreen(
+                    onShowEvents = {
+                        navController.navigate("events")
+                    },
+                    onShowSettings = {
+                        navController.navigate("settings")
+                    },
+                    onShowSundays = {
+                        navController.navigate("sundays")
                     },
                     onShowWorkdays = {
                         navController.navigate("workdays")
@@ -47,23 +53,16 @@ fun CalendarApp() {
                 )
             }
 
+            composable("events") {
+                EventsScreen(currDate = currDate.value, onBack = { navController.popBackStack() })
+            }
 
-            composable(
-                "sundays/{year}/{easter}",
-                arguments = listOf(
-                    navArgument("year") { type = NavType.IntType },
-                    navArgument("easter") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val year = backStackEntry.arguments?.getInt("year") ?: -1
-                val easterStr = backStackEntry.arguments?.getString("easter")
-                val easter = try {
-                    LocalDate.parse(easterStr)
-                } catch (e: Exception) {
-                    null
-                }
+            composable("settings") {
+                SettingsScreen(currDate = currDate.value, onBack = { navController.popBackStack() })
+            }
 
-                SundaysScreen(year, easter, onBack = { navController.popBackStack() })
+            composable("sundays") {
+                SundaysScreen(currDate = currDate.value, onBack = { navController.popBackStack() })
             }
 
             composable("workdays") {
