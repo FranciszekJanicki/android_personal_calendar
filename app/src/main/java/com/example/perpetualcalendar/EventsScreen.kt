@@ -10,12 +10,12 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,18 +25,14 @@ fun EventsScreen(navController: NavController) {
     var end by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var events by remember { mutableStateOf<List<Event>>(emptyList()) }
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    val context = LocalContext.current  // Access context here
 
-    // Get the DataStoreManager instance
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val context = LocalContext.current
     val dataStoreManager = remember { DataStoreManager(context) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Load events from DataStore
     LaunchedEffect(Unit) {
-        dataStoreManager.getEvents().collect { eventList ->
-            events = eventList
-        }
+        dataStoreManager.getEvents().collect { events = it }
     }
 
     Scaffold(
@@ -59,7 +55,6 @@ fun EventsScreen(navController: NavController) {
         ) {
             Text("Dodaj nowe wydarzenie", style = MaterialTheme.typography.titleMedium)
 
-            // Event title input
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
@@ -67,7 +62,6 @@ fun EventsScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Start date input
             OutlinedTextField(
                 value = start,
                 onValueChange = { start = it },
@@ -75,7 +69,6 @@ fun EventsScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // End date input
             OutlinedTextField(
                 value = end,
                 onValueChange = { end = it },
@@ -83,12 +76,8 @@ fun EventsScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Show error message if there is one
-            error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
-            }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
-            // Add event button
             Button(
                 onClick = {
                     try {
@@ -96,15 +85,9 @@ fun EventsScreen(navController: NavController) {
                         val endDate = LocalDate.parse(end, formatter)
                         val newEvent = Event(title, startDate, endDate)
 
-                        // Add event to local state
                         events = events + newEvent
+                        coroutineScope.launch { dataStoreManager.saveEvents(events) }
 
-                        // Save events to DataStore
-                        coroutineScope.launch {
-                            dataStoreManager.saveEvents(events)
-                        }
-
-                        // Clear input fields
                         title = ""
                         start = ""
                         end = ""
@@ -119,9 +102,8 @@ fun EventsScreen(navController: NavController) {
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            // Display events
             Text("Twoje wydarzenia", style = MaterialTheme.typography.titleMedium)
+
             LazyColumn {
                 itemsIndexed(events) { index, event ->
                     Card(
@@ -140,8 +122,6 @@ fun EventsScreen(navController: NavController) {
                                 Text("Od: ${event.startDate}", style = MaterialTheme.typography.bodyMedium)
                                 Text("Do: ${event.endDate}", style = MaterialTheme.typography.bodyMedium)
                             }
-
-                            // Delete event button
                             IconButton(
                                 onClick = {
                                     events = events.toMutableList().apply { removeAt(index) }

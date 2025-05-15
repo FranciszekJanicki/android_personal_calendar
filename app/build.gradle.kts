@@ -43,8 +43,12 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("androidx.datastore:datastore:1.0.0")
 
-
     implementation("com.google.code.gson:gson:2.8.8")
+
+    implementation ("androidx.work:work-runtime-ktx:2.8.1")
+    implementation ("androidx.core:core-ktx:1.10.1")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
