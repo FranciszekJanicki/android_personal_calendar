@@ -8,31 +8,29 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
 object NotificationHelper {
-    const val CHANNEL_ID = "events_channel"
-    const val CHANNEL_NAME = "Upcoming Events"
-    const val CHANNEL_DESC = "Notifications for upcoming calendar events"
+    private const val CHANNEL_ID = "perpetual_calendar_channel"
+    private const val CHANNEL_NAME = "Perpetual Calendar Notifications"
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID, CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = CHANNEL_DESC
+                description = "Notifications for event start/end"
             }
-
-            val notificationManager: NotificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+            val manager = context.getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
         }
     }
 
-    fun sendNotification(context: Context, notificationId: Int, title: String, message: String) {
+    fun showNotification(context: Context, notificationId: Int, title: String, message: String) {
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.mipmap.ic_launcher) // Replace with your app icon resource
             .setContentTitle(title)
             .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
 
         with(NotificationManagerCompat.from(context)) {

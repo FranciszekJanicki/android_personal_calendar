@@ -1,7 +1,6 @@
 package com.example.perpetualcalendar
 
 import android.content.Context
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -11,6 +10,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -31,16 +31,22 @@ fun EventsScreen(navController: NavController) {
     var events by remember { mutableStateOf<List<Event>>(emptyList()) }
     var editingEventId by remember { mutableStateOf<String?>(null) }
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    val today = LocalDate.now()
     val context = LocalContext.current
     val dataStoreManager = remember { DataStoreManager(context) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Track which event descriptions are expanded (by id)
     val expandedEventIds = remember { mutableStateListOf<String>() }
+
+    var notificationsEnabled by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         dataStoreManager.getEvents().collect { events = it }
+    }
+
+    LaunchedEffect(Unit) {
+        dataStoreManager.enableNotificationsFlow.collect {
+            notificationsEnabled = it
+        }
     }
 
     fun clearForm() {
@@ -50,6 +56,13 @@ fun EventsScreen(navController: NavController) {
         end = ""
         editingEventId = null
         error = null
+    }
+
+    fun scheduleAllNotifications(context: Context, events: List<Event>) {
+        events.forEach { event ->
+            scheduleNotification(context, event, atStart = true)
+            scheduleNotification(context, event, atStart = false)
+        }
     }
 
     Scaffold(
@@ -106,136 +119,152 @@ fun EventsScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Button(
-                    onClick = {
-                        try {
-                            val startDate = LocalDate.parse(start, formatter)
-                            val endDate = LocalDate.parse(end, formatter)
+                Button(onClick = {
+                    // Validate inputs
+                    val startDate = try {
+                        LocalDate.parse(start, formatter)
+                    } catch (e: Exception) {
+                        error = "Niepoprawna data rozpoczęcia"
+                        return@Button
+                    }
+                    val endDate = try {
+                        LocalDate.parse(end, formatter)
+                    } catch (e: Exception) {
+                        error = "Niepoprawna data zakończenia"
+                        return@Button
+                    }
+                    if (title.isBlank()) {
+                        error = "Nazwa nie może być pusta"
+                        return@Button
+                    }
+                    if (endDate.isBefore(startDate)) {
+                        error = "Data zakończenia nie może być wcześniej niż rozpoczęcia"
+                        return@Button
+                    }
 
-                            when {
-                                title.isBlank() -> error = "Nazwa wydarzenia nie może być pusta"
-                                startDate.isBefore(today) || endDate.isBefore(today) ->
-                                    error = "Daty nie mogą być wcześniejsze niż dzisiaj"
-                                endDate.isBefore(startDate) ->
-                                    error = "Data zakończenia nie może być przed datą rozpoczęcia"
-                                else -> {
-                                    if (editingEventId == null) {
-                                        // Add new event
-                                        val newEvent = Event(
-                                            id = UUID.randomUUID().toString(),
-                                            title = title,
-                                            startDate = startDate,
-                                            endDate = endDate,
-                                            description = description
-                                        )
-                                        events = events + newEvent
-                                    } else {
-                                        // Edit existing event
-                                        events = events.map {
-                                            if (it.id == editingEventId) {
-                                                it.copy(
-                                                    title = title,
-                                                    startDate = startDate,
-                                                    endDate = endDate,
-                                                    description = description
-                                                )
-                                            } else it
-                                        }
-                                    }
-
-                                    coroutineScope.launch {
-                                        dataStoreManager.saveEvents(events)
-                                    }
-                                    clearForm()
-                                }
-                            }
-                        } catch (e: Exception) {
-                            error = "Niepoprawny format daty"
+                    error = null
+                    coroutineScope.launch {
+                        val newEvent = Event(
+                            id = editingEventId ?: UUID.randomUUID().toString(),
+                            title = title,
+                            description = description,
+                            startDate = startDate,
+                            endDate = endDate
+                        )
+                        val newList = if (editingEventId == null) {
+                            events + newEvent
+                        } else {
+                            events.map { if (it.id == editingEventId) newEvent else it }
                         }
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(if (editingEventId == null) "Dodaj wydarzenie" else "Zapisz zmiany")
+                        dataStoreManager.saveEvents(newList)
+
+                        if (notificationsEnabled) {
+                            scheduleNotification(context, newEvent, true)
+                            scheduleNotification(context, newEvent, false)
+                        }
+
+                        clearForm()
+                    }
+                }) {
+                    Text(if (editingEventId == null) "Dodaj" else "Zapisz")
                 }
 
-                if (editingEventId != null) {
-                    OutlinedButton(
-                        onClick = { clearForm() },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Anuluj")
-                    }
+                Button(onClick = { clearForm() }) {
+                    Text("Anuluj")
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            error?.let {
+                Text(text = it, color = MaterialTheme.colorScheme.error)
+            }
 
-            Text("Twoje wydarzenia", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(16.dp))
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                itemsIndexed(events) { index, event ->
-                    val expanded = expandedEventIds.contains(event.id)
+                Text("Powiadomienia")
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = {
+                        notificationsEnabled = it
+                        coroutineScope.launch {
+                            dataStoreManager.saveEnableNotifications(it)
+                            if (!it) {
+                                // Cancel all notifications
+                                events.forEach { event ->
+                                    cancelNotification(context, event, true)
+                                    cancelNotification(context, event, false)
+                                }
+                            } else {
+                                // Schedule all notifications
+                                scheduleAllNotifications(context, events)
+                            }
+                        }
+                    }
+                )
+            }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LazyColumn {
+                itemsIndexed(events) { _, event ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .clickable {
-                                if (expanded) {
-                                    expandedEventIds.remove(event.id)
-                                } else {
-                                    expandedEventIds.add(event.id)
-                                }
+                            .padding(vertical = 4.dp),
+                        onClick = {
+                            if (expandedEventIds.contains(event.id)) {
+                                expandedEventIds.remove(event.id)
+                            } else {
+                                expandedEventIds.add(event.id)
                             }
+                        }
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(event.title, style = MaterialTheme.typography.bodyLarge)
-                            Text("Od: ${event.startDate}", style = MaterialTheme.typography.bodyMedium)
-                            Text("Do: ${event.endDate}", style = MaterialTheme.typography.bodyMedium)
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(text = event.title, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                text = "${event.startDate} - ${event.endDate}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
 
-                            if (expanded && event.description.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(event.description, style = MaterialTheme.typography.bodySmall)
-                            }
+                            if (expandedEventIds.contains(event.id)) {
+                                Text(text = event.description)
 
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(
-                                horizontalArrangement = Arrangement.End,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                IconButton(
-                                    onClick = {
-                                        // Start editing event
-                                        editingEventId = event.id
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    IconButton(onClick = {
                                         title = event.title
                                         description = event.description
                                         start = event.startDate.toString()
                                         end = event.endDate.toString()
-                                        error = null
+                                        editingEventId = event.id
+                                    }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Edytuj")
                                     }
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Edytuj")
-                                }
 
-                                IconButton(
-                                    onClick = {
-                                        events = events.toMutableList().apply { removeAt(index) }
+                                    IconButton(onClick = {
                                         coroutineScope.launch {
-                                            dataStoreManager.saveEvents(events)
+                                            dataStoreManager.saveEvents(events.filter { it.id != event.id })
+                                            if (notificationsEnabled) {
+                                                cancelNotification(context, event, true)
+                                                cancelNotification(context, event, false)
+                                            }
                                         }
-                                        if (editingEventId == event.id) clearForm()
+                                    }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Usuń")
                                     }
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Usuń")
                                 }
                             }
                         }

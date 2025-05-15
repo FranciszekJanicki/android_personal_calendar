@@ -23,8 +23,7 @@ class DataStoreManager(private val context: Context) {
         .registerTypeAdapter(java.time.LocalDate::class.java, LocalDateAdapter())
         .create()
 
-    // --- Events ---
-
+    // Save events JSON
     suspend fun saveEvents(events: List<Event>) {
         val eventsJson = gson.toJson(events)
         context.dataStore.edit { preferences ->
@@ -48,8 +47,6 @@ class DataStoreManager(private val context: Context) {
     suspend fun clearEvents() {
         context.dataStore.edit { it.remove(PreferenceKeys.EVENTS_LIST) }
     }
-
-    // --- Settings ---
 
     // Default Year
     suspend fun saveDefaultYear(year: String) {

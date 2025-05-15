@@ -12,6 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PerpetualCalendar"
         tools:targetApi="31">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -23,6 +24,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Add this receiver to handle notification alarms -->
+        <receiver android:name=".NotificationReceiver" />
+
     </application>
+
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
 </manifest>
