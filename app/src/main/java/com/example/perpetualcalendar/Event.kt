@@ -1,12 +1,12 @@
 package com.example.perpetualcalendar
 
-import java.time.LocalDate
 import java.util.UUID
+import java.time.LocalDateTime
 
 data class Event(
-    val id: String = UUID.randomUUID().toString(), // unique ID first
+    val id: String = UUID.randomUUID().toString(),
     val title: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
-    val description: String = ""  // description last, optional default empty
+    val startDateTime: LocalDateTime,
+    val endDateTime: LocalDateTime,
+    val description: String = ""
 )

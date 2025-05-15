@@ -2,25 +2,21 @@ package com.example.perpetualcalendar
 
 import com.google.gson.*
 import java.lang.reflect.Type
-import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class LocalDateAdapter : JsonSerializer<LocalDate>, JsonDeserializer<LocalDate> {
-    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE
+class LocalDateTimeAdapter : JsonSerializer<LocalDateTime>, JsonDeserializer<LocalDateTime> {
+    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
     override fun serialize(
-        src: LocalDate?,
+        src: LocalDateTime?,
         typeOfSrc: Type?,
         context: JsonSerializationContext?
-    ): JsonElement {
-        return JsonPrimitive(src?.format(formatter))
-    }
+    ): JsonElement = JsonPrimitive(src?.format(formatter))
 
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?
-    ): LocalDate {
-        return LocalDate.parse(json?.asString, formatter)
-    }
+    ): LocalDateTime = LocalDateTime.parse(json?.asString, formatter)
 }

@@ -8,6 +8,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalDateTime
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "events_data_store")
 
@@ -20,8 +21,9 @@ object PreferenceKeys {
 
 class DataStoreManager(private val context: Context) {
     private val gson = GsonBuilder()
-        .registerTypeAdapter(java.time.LocalDate::class.java, LocalDateAdapter())
+        .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeAdapter())
         .create()
+
 
     // Save events JSON
     suspend fun saveEvents(events: List<Event>) {

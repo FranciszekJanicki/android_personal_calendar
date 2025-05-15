@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
-import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
@@ -30,7 +30,7 @@ fun EventsScreen(navController: NavController) {
     var error by remember { mutableStateOf<String?>(null) }
     var events by remember { mutableStateOf<List<Event>>(emptyList()) }
     var editingEventId by remember { mutableStateOf<String?>(null) }
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val context = LocalContext.current
     val dataStoreManager = remember { DataStoreManager(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -127,14 +127,14 @@ fun EventsScreen(navController: NavController) {
             ) {
                 Button(onClick = {
                     // Validate inputs
-                    val startDate = try {
-                        LocalDate.parse(start, formatter)
+                    val startDateTime = try {
+                        LocalDateTime.parse(start, formatter)
                     } catch (e: Exception) {
                         error = "Niepoprawna data rozpoczęcia"
                         return@Button
                     }
-                    val endDate = try {
-                        LocalDate.parse(end, formatter)
+                    val endDateTime = try {
+                        LocalDateTime.parse(end, formatter)
                     } catch (e: Exception) {
                         error = "Niepoprawna data zakończenia"
                         return@Button
@@ -143,7 +143,7 @@ fun EventsScreen(navController: NavController) {
                         error = "Nazwa nie może być pusta"
                         return@Button
                     }
-                    if (endDate.isBefore(startDate)) {
+                    if (endDateTime.isBefore(startDateTime)) {
                         error = "Data zakończenia nie może być wcześniej niż rozpoczęcia"
                         return@Button
                     }
@@ -154,8 +154,8 @@ fun EventsScreen(navController: NavController) {
                             id = editingEventId ?: UUID.randomUUID().toString(),
                             title = title,
                             description = description,
-                            startDate = startDate,
-                            endDate = endDate
+                            startDateTime = startDateTime,
+                            endDateTime = endDateTime
                         )
                         val newList = if (editingEventId == null) {
                             events + newEvent
@@ -233,7 +233,7 @@ fun EventsScreen(navController: NavController) {
                         ) {
                             Text(text = event.title, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                text = "${event.startDate} - ${event.endDate}",
+                                text = "${event.startDateTime} - ${event.endDateTime}",
                                 style = MaterialTheme.typography.bodySmall
                             )
 
@@ -247,8 +247,8 @@ fun EventsScreen(navController: NavController) {
                                     IconButton(onClick = {
                                         title = event.title
                                         description = event.description
-                                        start = event.startDate.toString()
-                                        end = event.endDate.toString()
+                                        start = event.startDateTime.format(formatter)
+                                        end = event.endDateTime.format(formatter)
                                         editingEventId = event.id
                                     }) {
                                         Icon(Icons.Default.Edit, contentDescription = "Edytuj")

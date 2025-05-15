@@ -23,9 +23,9 @@ fun scheduleNotification(context: Context, event: Event, atStart: Boolean) {
     )
 
     val timeInMillis = if (atStart) {
-        event.startDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        event.startDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
     } else {
-        event.endDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        event.endDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
     }
 
     alarmManager.setExact(AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent)
