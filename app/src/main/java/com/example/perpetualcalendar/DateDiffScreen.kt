@@ -58,9 +58,17 @@ fun DateDiffScreen(navController: NavController) {
                     try {
                         val start = LocalDate.parse(startDateInput, formatter)
                         val end = LocalDate.parse(endDateInput, formatter)
+
+                        if (end.isBefore(start)) {
+                            result = null
+                            error = "Data końcowa nie może być wcześniejsza niż początkowa."
+                            return@Button
+                        }
+
                         val totalDays = ChronoUnit.DAYS.between(start, end).toInt()
                         val workdays = (0..totalDays).map { start.plusDays(it.toLong()) }
                             .count { it.dayOfWeek.value in 1..5 }
+
                         result = "Liczba dni: $totalDays\nDni robocze: $workdays"
                         error = null
                     } catch (e: Exception) {
