@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -27,16 +28,18 @@ fun EventsScreen(navController: NavController) {
     var description by remember { mutableStateOf("") }
     var start by remember { mutableStateOf("") }
     var end by remember { mutableStateOf("") }
+    var selectedRecurrence by remember { mutableStateOf(Recurrence.NONE) }
+    var recurrenceExpanded by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var events by remember { mutableStateOf<List<Event>>(emptyList()) }
     var editingEventId by remember { mutableStateOf<String?>(null) }
+
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val context = LocalContext.current
     val dataStoreManager = remember { DataStoreManager(context) }
     val coroutineScope = rememberCoroutineScope()
 
     val expandedEventIds = remember { mutableStateListOf<String>() }
-
     var notificationsEnabled by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -54,6 +57,7 @@ fun EventsScreen(navController: NavController) {
         description = ""
         start = ""
         end = ""
+        selectedRecurrence = Recurrence.NONE
         editingEventId = null
         error = null
     }
@@ -108,16 +112,51 @@ fun EventsScreen(navController: NavController) {
             OutlinedTextField(
                 value = start,
                 onValueChange = { start = it },
-                label = { Text("Data rozpoczęcia (YYYY-MM-DD)") },
+                label = { Text("Data rozpoczęcia (YYYY-MM-DD HH:mm)") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
                 value = end,
                 onValueChange = { end = it },
-                label = { Text("Data zakończenia (YYYY-MM-DD)") },
+                label = { Text("Data zakończenia (YYYY-MM-DD HH:mm)") },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = recurrenceToDisplay(selectedRecurrence),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Powtarzalność") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = { recurrenceExpanded = true }) {
+                            Icon(Icons.Filled.ArrowDropDown, contentDescription = "Rozwiń")
+                        }
+                    }
+                )
+
+                DropdownMenu(
+                    expanded = recurrenceExpanded,
+                    onDismissRequest = { recurrenceExpanded = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Recurrence.values().forEach { recurrence ->
+                        DropdownMenuItem(
+                            text = { Text(recurrenceToDisplay(recurrence)) },
+                            onClick = {
+                                selectedRecurrence = recurrence
+                                recurrenceExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier
@@ -126,36 +165,40 @@ fun EventsScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(onClick = {
-                    // Validate inputs
                     val startDateTime = try {
                         LocalDateTime.parse(start, formatter)
                     } catch (e: Exception) {
                         error = "Niepoprawna data rozpoczęcia"
                         return@Button
                     }
+
                     val endDateTime = try {
                         LocalDateTime.parse(end, formatter)
                     } catch (e: Exception) {
                         error = "Niepoprawna data zakończenia"
                         return@Button
                     }
+
                     if (title.isBlank()) {
                         error = "Nazwa nie może być pusta"
                         return@Button
                     }
+
                     if (endDateTime.isBefore(startDateTime)) {
                         error = "Data zakończenia nie może być wcześniej niż rozpoczęcia"
                         return@Button
                     }
 
                     error = null
+
                     coroutineScope.launch {
                         val newEvent = Event(
                             id = editingEventId ?: UUID.randomUUID().toString(),
                             title = title,
                             description = description,
                             startDateTime = startDateTime,
-                            endDateTime = endDateTime
+                            endDateTime = endDateTime,
+                            recurrence = selectedRecurrence
                         )
                         val newList = if (editingEventId == null) {
                             events + newEvent
@@ -186,9 +229,7 @@ fun EventsScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Powiadomienia")
                 Spacer(modifier = Modifier.width(8.dp))
                 Switch(
@@ -198,13 +239,11 @@ fun EventsScreen(navController: NavController) {
                         coroutineScope.launch {
                             dataStoreManager.saveEnableNotifications(it)
                             if (!it) {
-                                // Cancel all notifications
                                 events.forEach { event ->
                                     cancelNotification(context, event, true)
                                     cancelNotification(context, event, false)
                                 }
                             } else {
-                                // Schedule all notifications
                                 scheduleAllNotifications(context, events)
                             }
                         }
@@ -228,17 +267,17 @@ fun EventsScreen(navController: NavController) {
                             }
                         }
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Text(text = event.title, style = MaterialTheme.typography.titleMedium)
                             Text(
                                 text = "${event.startDateTime} - ${event.endDateTime}",
                                 style = MaterialTheme.typography.bodySmall
                             )
-
                             if (expandedEventIds.contains(event.id)) {
                                 Text(text = event.description)
+                                if (event.recurrence != Recurrence.NONE) {
+                                    Text("Powtarzalność: ${recurrenceToDisplay(event.recurrence)}")
+                                }
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -249,6 +288,7 @@ fun EventsScreen(navController: NavController) {
                                         description = event.description
                                         start = event.startDateTime.format(formatter)
                                         end = event.endDateTime.format(formatter)
+                                        selectedRecurrence = event.recurrence
                                         editingEventId = event.id
                                     }) {
                                         Icon(Icons.Default.Edit, contentDescription = "Edytuj")

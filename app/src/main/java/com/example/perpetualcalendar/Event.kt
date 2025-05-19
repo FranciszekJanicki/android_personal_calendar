@@ -10,6 +10,15 @@ enum class Recurrence {
     MONTHLY
 }
 
+fun recurrenceToDisplay(recurrence: Recurrence): String {
+    return when (recurrence) {
+        Recurrence.NONE -> "Brak"
+        Recurrence.DAILY -> "Codziennie"
+        Recurrence.WEEKLY -> "Co tydzień"
+        Recurrence.MONTHLY -> "Co miesiąc"
+    }
+}
+
 data class Event(
     val id: String = UUID.randomUUID().toString(),
     val title: String,
