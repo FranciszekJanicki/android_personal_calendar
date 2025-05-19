@@ -10,7 +10,7 @@ enum class Recurrence {
     MONTHLY
 }
 
-fun recurrenceToDisplay(recurrence: Recurrence): String {
+fun RecurrenceToDisplayName(recurrence: Recurrence): String {
     return when (recurrence) {
         Recurrence.NONE -> "Brak"
         Recurrence.DAILY -> "Codziennie"

@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -21,52 +20,82 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RecurrenceDropdown(
+    recurrence: Recurrence,
+    onRecurrenceSelected: (Recurrence) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val recurrenceOptions = Recurrence.values().toList()
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            readOnly = true,
+            value = RecurrenceToDisplayName(recurrence),
+            onValueChange = {},
+            label = { Text("Powtarzanie") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            recurrenceOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(RecurrenceToDisplayName(option)) },
+                    onClick = {
+                        onRecurrenceSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventsScreen(navController: NavController) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var start by remember { mutableStateOf("") }
-    var end by remember { mutableStateOf("") }
-    var selectedRecurrence by remember { mutableStateOf(Recurrence.NONE) }
-    var recurrenceExpanded by remember { mutableStateOf(false) }
+    var startDateTime by remember { mutableStateOf<LocalDateTime?>(null) }
+    var endDateTime by remember { mutableStateOf<LocalDateTime?>(null) }
+    var recurrence by remember { mutableStateOf(Recurrence.NONE) }
     var error by remember { mutableStateOf<String?>(null) }
     var events by remember { mutableStateOf<List<Event>>(emptyList()) }
     var editingEventId by remember { mutableStateOf<String?>(null) }
-
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-    val context = LocalContext.current
-    val dataStoreManager = remember { DataStoreManager(context) }
-    val coroutineScope = rememberCoroutineScope()
-
     val expandedEventIds = remember { mutableStateListOf<String>() }
-    var notificationsEnabled by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        dataStoreManager.getEvents().collect { events = it }
-    }
+    // TODO: Replace with your actual DataStoreManager implementation
+    val dataStoreManager = remember { DataStoreManager(context) }
 
+    // Load events from dataStore on start
     LaunchedEffect(Unit) {
-        dataStoreManager.enableNotificationsFlow.collect {
-            notificationsEnabled = it
+        dataStoreManager.getEvents().collect {
+            events = it
         }
     }
 
     fun clearForm() {
         title = ""
         description = ""
-        start = ""
-        end = ""
-        selectedRecurrence = Recurrence.NONE
+        startDateTime = null
+        endDateTime = null
+        recurrence = Recurrence.NONE
         editingEventId = null
         error = null
-    }
-
-    fun scheduleAllNotifications(context: Context, events: List<Event>) {
-        events.forEach { event ->
-            scheduleNotification(context, event, atStart = true)
-            scheduleNotification(context, event, atStart = false)
-        }
     }
 
     Scaffold(
@@ -109,96 +138,63 @@ fun EventsScreen(navController: NavController) {
                 maxLines = 5
             )
 
-            OutlinedTextField(
-                value = start,
-                onValueChange = { start = it },
-                label = { Text("Data rozpoczęcia (YYYY-MM-DD HH:mm)") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
-                value = end,
-                onValueChange = { end = it },
-                label = { Text("Data zakończenia (YYYY-MM-DD HH:mm)") },
-                modifier = Modifier.fillMaxWidth()
+            DateTimePickerField(
+                label = "Data rozpoczęcia",
+                dateTime = startDateTime,
+                onDateTimeChange = { startDateTime = it }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = recurrenceToDisplay(selectedRecurrence),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Powtarzalność") },
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = { recurrenceExpanded = true }) {
-                            Icon(Icons.Filled.ArrowDropDown, contentDescription = "Rozwiń")
-                        }
-                    }
-                )
+            DateTimePickerField(
+                label = "Data zakończenia",
+                dateTime = endDateTime,
+                onDateTimeChange = { endDateTime = it }
+            )
 
-                DropdownMenu(
-                    expanded = recurrenceExpanded,
-                    onDismissRequest = { recurrenceExpanded = false },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Recurrence.values().forEach { recurrence ->
-                        DropdownMenuItem(
-                            text = { Text(recurrenceToDisplay(recurrence)) },
-                            onClick = {
-                                selectedRecurrence = recurrence
-                                recurrenceExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            RecurrenceDropdown(
+                recurrence = recurrence,
+                onRecurrenceSelected = { recurrence = it },
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(onClick = {
-                    val startDateTime = try {
-                        LocalDateTime.parse(start, formatter)
-                    } catch (e: Exception) {
-                        error = "Niepoprawna data rozpoczęcia"
-                        return@Button
-                    }
-
-                    val endDateTime = try {
-                        LocalDateTime.parse(end, formatter)
-                    } catch (e: Exception) {
-                        error = "Niepoprawna data zakończenia"
-                        return@Button
-                    }
-
                     if (title.isBlank()) {
                         error = "Nazwa nie może być pusta"
                         return@Button
                     }
-
-                    if (endDateTime.isBefore(startDateTime)) {
+                    if (startDateTime == null) {
+                        error = "Proszę wybrać datę rozpoczęcia"
+                        return@Button
+                    }
+                    if (endDateTime == null) {
+                        error = "Proszę wybrać datę zakończenia"
+                        return@Button
+                    }
+                    if (endDateTime!!.isBefore(startDateTime)) {
                         error = "Data zakończenia nie może być wcześniej niż rozpoczęcia"
                         return@Button
                     }
 
                     error = null
-
                     coroutineScope.launch {
                         val newEvent = Event(
                             id = editingEventId ?: UUID.randomUUID().toString(),
                             title = title,
                             description = description,
-                            startDateTime = startDateTime,
-                            endDateTime = endDateTime,
-                            recurrence = selectedRecurrence
+                            startDateTime = startDateTime!!,
+                            endDateTime = endDateTime!!,
+                            recurrence = recurrence
                         )
                         val newList = if (editingEventId == null) {
                             events + newEvent
@@ -206,12 +202,6 @@ fun EventsScreen(navController: NavController) {
                             events.map { if (it.id == editingEventId) newEvent else it }
                         }
                         dataStoreManager.saveEvents(newList)
-
-                        if (notificationsEnabled) {
-                            scheduleNotification(context, newEvent, true)
-                            scheduleNotification(context, newEvent, false)
-                        }
-
                         clearForm()
                     }
                 }) {
@@ -224,31 +214,8 @@ fun EventsScreen(navController: NavController) {
             }
 
             error?.let {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(text = it, color = MaterialTheme.colorScheme.error)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Powiadomienia")
-                Spacer(modifier = Modifier.width(8.dp))
-                Switch(
-                    checked = notificationsEnabled,
-                    onCheckedChange = {
-                        notificationsEnabled = it
-                        coroutineScope.launch {
-                            dataStoreManager.saveEnableNotifications(it)
-                            if (!it) {
-                                events.forEach { event ->
-                                    cancelNotification(context, event, true)
-                                    cancelNotification(context, event, false)
-                                }
-                            } else {
-                                scheduleAllNotifications(context, events)
-                            }
-                        }
-                    }
-                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -267,17 +234,19 @@ fun EventsScreen(navController: NavController) {
                             }
                         }
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
                             Text(text = event.title, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                text = "${event.startDateTime} - ${event.endDateTime}",
+                                text = "${event.startDateTime.format(formatter)} - ${event.endDateTime.format(formatter)}",
                                 style = MaterialTheme.typography.bodySmall
                             )
+                            Text(text = RecurrenceToDisplayName(event.recurrence))
+
                             if (expandedEventIds.contains(event.id)) {
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(text = event.description)
-                                if (event.recurrence != Recurrence.NONE) {
-                                    Text("Powtarzalność: ${recurrenceToDisplay(event.recurrence)}")
-                                }
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -286,9 +255,9 @@ fun EventsScreen(navController: NavController) {
                                     IconButton(onClick = {
                                         title = event.title
                                         description = event.description
-                                        start = event.startDateTime.format(formatter)
-                                        end = event.endDateTime.format(formatter)
-                                        selectedRecurrence = event.recurrence
+                                        startDateTime = event.startDateTime
+                                        endDateTime = event.endDateTime
+                                        recurrence = event.recurrence
                                         editingEventId = event.id
                                     }) {
                                         Icon(Icons.Default.Edit, contentDescription = "Edytuj")
@@ -297,10 +266,6 @@ fun EventsScreen(navController: NavController) {
                                     IconButton(onClick = {
                                         coroutineScope.launch {
                                             dataStoreManager.saveEvents(events.filter { it.id != event.id })
-                                            if (notificationsEnabled) {
-                                                cancelNotification(context, event, true)
-                                                cancelNotification(context, event, false)
-                                            }
                                         }
                                     }) {
                                         Icon(Icons.Default.Delete, contentDescription = "Usuń")
@@ -313,4 +278,118 @@ fun EventsScreen(navController: NavController) {
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateTimePickerField(
+    label: String,
+    dateTime: LocalDateTime?,
+    onDateTimeChange: (LocalDateTime) -> Unit,
+) {
+    val context = LocalContext.current
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
+    OutlinedTextField(
+        readOnly = true,
+        value = dateTime?.format(formatter) ?: "",
+        onValueChange = {},
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth(),
+        trailingIcon = {
+            IconButton(onClick = { showDatePicker = true }) {
+                Icon(Icons.Default.Edit, contentDescription = "Wybierz datę i czas")
+            }
+        }
+    )
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            onDateConfirm = { date ->
+                val currentTime = dateTime ?: LocalDateTime.now()
+                val combined = LocalDateTime.of(date, currentTime.toLocalTime())
+                onDateTimeChange(combined)
+                showDatePicker = false
+                showTimePicker = true
+            }
+        )
+    }
+
+    if (showTimePicker) {
+        TimePickerDialog(
+            onDismissRequest = { showTimePicker = false },
+            onTimeConfirm = { time ->
+                val currentDate = dateTime?.toLocalDate() ?: LocalDateTime.now().toLocalDate()
+                val combined = LocalDateTime.of(currentDate, time)
+                onDateTimeChange(combined)
+                showTimePicker = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DatePickerDialog(
+    onDismissRequest: () -> Unit,
+    onDateConfirm: (java.time.LocalDate) -> Unit
+) {
+    val datePickerState = rememberDatePickerState()
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = {
+            TextButton(onClick = {
+                val selectedDateMillis = datePickerState.selectedDateMillis
+                if (selectedDateMillis != null) {
+                    val selectedDate = java.time.Instant.ofEpochMilli(selectedDateMillis)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDate()
+                    onDateConfirm(selectedDate)
+                }
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text("Anuluj")
+            }
+        },
+        text = {
+            DatePicker(state = datePickerState)
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimePickerDialog(
+    onDismissRequest: () -> Unit,
+    onTimeConfirm: (java.time.LocalTime) -> Unit
+) {
+    val timePickerState = rememberTimePickerState()
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = {
+            TextButton(onClick = {
+                val hour = timePickerState.hour
+                val minute = timePickerState.minute
+                onTimeConfirm(java.time.LocalTime.of(hour, minute))
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text("Anuluj")
+            }
+        },
+        text = {
+            TimePicker(state = timePickerState)
+        }
+    )
 }

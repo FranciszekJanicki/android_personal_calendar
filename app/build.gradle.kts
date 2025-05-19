@@ -48,6 +48,11 @@ dependencies {
     implementation ("androidx.work:work-runtime-ktx:2.8.1")
     implementation ("androidx.core:core-ktx:1.10.1")
 
+    implementation("io.github.vanpra.compose-material-dialogs:core:0.9.0")
+    implementation("io.github.vanpra.compose-material-dialogs:datetime:0.9.0")
+
+    implementation ("androidx.compose.material3:material3:1.1.0")
+
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
     implementation(libs.androidx.core.ktx)
