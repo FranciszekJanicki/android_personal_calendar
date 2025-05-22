@@ -24,10 +24,11 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecurrenceDropdown(
-    recurrence: Recurrence,
+    recurrence: Recurrence?,
     onRecurrenceSelected: (Recurrence) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val safeRecurrence = recurrence ?: Recurrence.NONE
     var expanded by remember { mutableStateOf(false) }
     val recurrenceOptions = Recurrence.values().toList()
 
@@ -38,7 +39,7 @@ fun RecurrenceDropdown(
     ) {
         OutlinedTextField(
             readOnly = true,
-            value = RecurrenceToDisplayName(recurrence),
+            value = recurrenceToDisplayName(safeRecurrence),
             onValueChange = {},
             label = { Text("Powtarzanie") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -50,7 +51,7 @@ fun RecurrenceDropdown(
         ) {
             recurrenceOptions.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(RecurrenceToDisplayName(option)) },
+                    text = { Text(recurrenceToDisplayName(option)) },
                     onClick = {
                         onRecurrenceSelected(option)
                         expanded = false
@@ -77,16 +78,19 @@ fun EventsScreen(navController: NavController) {
     var editingEventId by remember { mutableStateOf<String?>(null) }
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val expandedEventIds = remember { mutableStateListOf<String>() }
-
-    // TODO: Replace with your actual DataStoreManager implementation
     val dataStoreManager = remember { DataStoreManager(context) }
 
-    // Load events from dataStore on start
     LaunchedEffect(Unit) {
-        dataStoreManager.getEvents().collect {
-            events = it
+        try {
+            dataStoreManager.getEvents().collect {
+                events = it
+            }
+        } catch (e: Exception) {
+            error = "Failed to load events: ${e.localizedMessage}"
+            e.printStackTrace()
         }
     }
+
 
     fun clearForm() {
         title = ""
@@ -194,7 +198,7 @@ fun EventsScreen(navController: NavController) {
                             description = description,
                             startDateTime = startDateTime!!,
                             endDateTime = endDateTime!!,
-                            recurrence = recurrence
+                            recurrence = recurrence ?: Recurrence.NONE
                         )
                         val newList = if (editingEventId == null) {
                             events + newEvent
@@ -202,6 +206,14 @@ fun EventsScreen(navController: NavController) {
                             events.map { if (it.id == editingEventId) newEvent else it }
                         }
                         dataStoreManager.saveEvents(newList)
+
+                        try {
+                            NotificationScheduler.scheduleNotification(context, newEvent, beforeStart = true)
+                            NotificationScheduler.scheduleNotification(context, newEvent, beforeStart = false)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+
                         clearForm()
                     }
                 }) {
@@ -211,6 +223,8 @@ fun EventsScreen(navController: NavController) {
                 Button(onClick = { clearForm() }) {
                     Text("Anuluj")
                 }
+
+
             }
 
             error?.let {
@@ -242,7 +256,7 @@ fun EventsScreen(navController: NavController) {
                                 text = "${event.startDateTime.format(formatter)} - ${event.endDateTime.format(formatter)}",
                                 style = MaterialTheme.typography.bodySmall
                             )
-                            Text(text = RecurrenceToDisplayName(event.recurrence))
+                            Text(text = recurrenceToDisplayName(event.recurrence))
 
                             if (expandedEventIds.contains(event.id)) {
                                 Spacer(modifier = Modifier.height(4.dp))

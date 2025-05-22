@@ -12,11 +12,22 @@ class LocalDateTimeAdapter : JsonSerializer<LocalDateTime>, JsonDeserializer<Loc
         src: LocalDateTime?,
         typeOfSrc: Type?,
         context: JsonSerializationContext?
-    ): JsonElement = JsonPrimitive(src?.format(formatter))
+    ): JsonElement {
+        return JsonPrimitive(src?.format(formatter))
+    }
 
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?
-    ): LocalDateTime = LocalDateTime.parse(json?.asString, formatter)
+    ): LocalDateTime? {
+        return json?.asString?.let {
+            try {
+                LocalDateTime.parse(it, formatter)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
+    }
 }

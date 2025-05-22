@@ -3,38 +3,39 @@ package com.example.perpetualcalendar
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 
 object NotificationHelper {
-    private const val CHANNEL_ID = "perpetual_calendar_channel"
-    private const val CHANNEL_NAME = "Perpetual Calendar Notifications"
+    private const val CHANNEL_ID = "event_reminder_channel"
+    private const val CHANNEL_NAME = "Event Reminders"
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notifications for event start/end"
+                description = "Notifications for event reminders"
+                setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION), null)
             }
-            val manager = context.getSystemService(NotificationManager::class.java)
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
     }
 
-    fun showNotification(context: Context, notificationId: Int, title: String, message: String) {
+    fun showNotification(context: Context, id: Int, title: String, message: String) {
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher) // Replace with your app icon resource
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
 
-        with(NotificationManagerCompat.from(context)) {
-            notify(notificationId, builder.build())
-        }
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(id, builder.build())
     }
 }
