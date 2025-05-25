@@ -19,19 +19,13 @@ fun SettingsScreen(navController: NavController) {
     val dataStoreManager = remember { DataStoreManager(context) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Collect saved settings flows as state
-    val defaultYearFlow = dataStoreManager.defaultYearFlow.collectAsState(initial = "2024")
     val showDescriptionsFlow = dataStoreManager.showDescriptionsFlow.collectAsState(initial = true)
     val enableNotificationsFlow = dataStoreManager.enableNotificationsFlow.collectAsState(initial = false)
 
-    // Local editable states to allow user editing
-    var defaultYear by remember { mutableStateOf(defaultYearFlow.value) }
     var showDescriptions by remember { mutableStateOf(showDescriptionsFlow.value) }
     var enableNotifications by remember { mutableStateOf(enableNotificationsFlow.value) }
     var showSavedMessage by remember { mutableStateOf(false) }
 
-    // Update local states when flow values change (in case settings updated elsewhere)
-    LaunchedEffect(defaultYearFlow.value) { defaultYear = defaultYearFlow.value }
     LaunchedEffect(showDescriptionsFlow.value) { showDescriptions = showDescriptionsFlow.value }
     LaunchedEffect(enableNotificationsFlow.value) { enableNotifications = enableNotificationsFlow.value }
 
@@ -54,14 +48,6 @@ fun SettingsScreen(navController: NavController) {
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
-                value = defaultYear,
-                onValueChange = { defaultYear = it },
-                label = { Text("Domyślny rok") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -83,7 +69,7 @@ fun SettingsScreen(navController: NavController) {
                     onCheckedChange = { enableNotifications = it }
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Włącz powiadomienia (niezaimplementowane)")
+                Text("Włącz powiadomienia")
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -91,7 +77,6 @@ fun SettingsScreen(navController: NavController) {
             Button(
                 onClick = {
                     coroutineScope.launch {
-                        dataStoreManager.saveDefaultYear(defaultYear)
                         dataStoreManager.saveShowDescriptions(showDescriptions)
                         dataStoreManager.saveEnableNotifications(enableNotifications)
                         showSavedMessage = true

@@ -14,53 +14,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun RecurrenceDropdown(
-    recurrence: Recurrence?,
-    onRecurrenceSelected: (Recurrence) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val safeRecurrence = recurrence ?: Recurrence.NONE
-    var expanded by remember { mutableStateOf(false) }
-    val recurrenceOptions = Recurrence.values().toList()
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier
-    ) {
-        OutlinedTextField(
-            readOnly = true,
-            value = recurrenceToDisplayName(safeRecurrence),
-            onValueChange = {},
-            label = { Text("Powtarzanie") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            recurrenceOptions.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(recurrenceToDisplayName(option)) },
-                    onClick = {
-                        onRecurrenceSelected(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,7 +53,6 @@ fun EventsScreen(navController: NavController) {
             e.printStackTrace()
         }
     }
-
 
     fun clearForm() {
         title = ""
@@ -296,6 +258,47 @@ fun EventsScreen(navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun RecurrenceDropdown(
+    recurrence: Recurrence?,
+    onRecurrenceSelected: (Recurrence) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val safeRecurrence = recurrence ?: Recurrence.NONE
+    var expanded by remember { mutableStateOf(false) }
+    val recurrenceOptions = Recurrence.values().toList()
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            readOnly = true,
+            value = recurrenceToDisplayName(safeRecurrence),
+            onValueChange = {},
+            label = { Text("Powtarzanie") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            recurrenceOptions.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(recurrenceToDisplayName(option)) },
+                    onClick = {
+                        onRecurrenceSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun DateTimePickerField(
     label: String,
     dateTime: LocalDateTime?,
@@ -350,60 +353,85 @@ fun DateTimePickerField(
 @Composable
 fun DatePickerDialog(
     onDismissRequest: () -> Unit,
-    onDateConfirm: (java.time.LocalDate) -> Unit
+    onDateConfirm: (LocalDate) -> Unit
 ) {
     val datePickerState = rememberDatePickerState()
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        confirmButton = {
-            TextButton(onClick = {
-                val selectedDateMillis = datePickerState.selectedDateMillis
-                if (selectedDateMillis != null) {
-                    val selectedDate = java.time.Instant.ofEpochMilli(selectedDateMillis)
-                        .atZone(java.time.ZoneId.systemDefault())
-                        .toLocalDate()
-                    onDateConfirm(selectedDate)
+
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                DatePicker(state = datePickerState)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextButton(onClick = onDismissRequest) {
+                        Text("Anuluj")
+                    }
+                    TextButton(onClick = {
+                        val millis = datePickerState.selectedDateMillis
+                        if (millis != null) {
+                            val date = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+                            onDateConfirm(date)
+                        }
+                    }) {
+                        Text("OK")
+                    }
                 }
-            }) {
-                Text("OK")
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismissRequest) {
-                Text("Anuluj")
-            }
-        },
-        text = {
-            DatePicker(state = datePickerState)
         }
-    )
+    }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimePickerDialog(
     onDismissRequest: () -> Unit,
-    onTimeConfirm: (java.time.LocalTime) -> Unit
+    onTimeConfirm: (LocalTime) -> Unit
 ) {
     val timePickerState = rememberTimePickerState()
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        confirmButton = {
-            TextButton(onClick = {
-                val hour = timePickerState.hour
-                val minute = timePickerState.minute
-                onTimeConfirm(java.time.LocalTime.of(hour, minute))
-            }) {
-                Text("OK")
+
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)  // prevents edge clipping
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                TimePicker(state = timePickerState)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextButton(onClick = onDismissRequest) {
+                        Text("Anuluj")
+                    }
+                    TextButton(onClick = {
+                        val hour = timePickerState.hour
+                        val minute = timePickerState.minute
+                        onTimeConfirm(LocalTime.of(hour, minute))
+                    }) {
+                        Text("OK")
+                    }
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismissRequest) {
-                Text("Anuluj")
-            }
-        },
-        text = {
-            TimePicker(state = timePickerState)
         }
-    )
+    }
 }

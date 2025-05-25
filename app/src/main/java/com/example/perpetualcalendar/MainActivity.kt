@@ -35,7 +35,6 @@ fun PerpetualCalendarApp() {
         composable("events") { EventsScreen(navController) }
         composable("settings") { SettingsScreen(navController) }
         composable("datediff") { DateDiffScreen(navController) }
-        composable("holidays") { HolidaysScreen(navController) }
         composable("shopping") { ShoppingListScreen(navController) }
     }
 }

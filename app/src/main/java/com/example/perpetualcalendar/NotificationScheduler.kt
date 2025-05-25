@@ -20,7 +20,7 @@ object NotificationScheduler {
         }
 
         if (notifyTime <= System.currentTimeMillis()) {
-            // Too late, don't schedule
+            // Too late, dont schedule
             return
         }
 

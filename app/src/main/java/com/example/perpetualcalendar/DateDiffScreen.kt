@@ -8,19 +8,34 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateDiffScreen(navController: NavController) {
-    var startDateInput by remember { mutableStateOf("") }
-    var endDateInput by remember { mutableStateOf("") }
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+    var startDate by remember { mutableStateOf<LocalDate?>(null) }
+    var endDate by remember { mutableStateOf<LocalDate?>(null) }
     var result by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    var showStartPicker by remember { mutableStateOf(false) }
+    var showEndPicker by remember { mutableStateOf(false) }
+
+    val startDatePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = startDate?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+            ?: Instant.now().toEpochMilli()
+    )
+
+    val endDatePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = endDate?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+            ?: Instant.now().toEpochMilli()
+    )
 
     Scaffold(
         topBar = {
@@ -40,41 +55,34 @@ fun DateDiffScreen(navController: NavController) {
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
-            OutlinedTextField(
-                value = startDateInput,
-                onValueChange = { startDateInput = it },
-                label = { Text("Data początkowa (YYYY-MM-DD)") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = endDateInput,
-                onValueChange = { endDateInput = it },
-                label = { Text("Data końcowa (YYYY-MM-DD)") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            TextButton(onClick = { showStartPicker = true }) {
+                Text(startDate?.format(formatter) ?: "Wybierz datę początkową")
+            }
+
+            TextButton(onClick = { showEndPicker = true }) {
+                Text(endDate?.format(formatter) ?: "Wybierz datę końcową")
+            }
 
             Button(
                 onClick = {
-                    try {
-                        val start = LocalDate.parse(startDateInput, formatter)
-                        val end = LocalDate.parse(endDateInput, formatter)
-
-                        if (end.isBefore(start)) {
-                            result = null
-                            error = "Data końcowa nie może być wcześniejsza niż początkowa."
-                            return@Button
-                        }
-
-                        val totalDays = ChronoUnit.DAYS.between(start, end).toInt()
-                        val workdays = (0..totalDays).map { start.plusDays(it.toLong()) }
-                            .count { it.dayOfWeek.value in 1..5 }
-
-                        result = "Liczba dni: $totalDays\nDni robocze: $workdays"
-                        error = null
-                    } catch (e: Exception) {
+                    if (startDate == null || endDate == null) {
+                        error = "Obie daty muszą być wybrane."
                         result = null
-                        error = "Niepoprawny format daty. Użyj YYYY-MM-DD."
+                        return@Button
                     }
+
+                    if (endDate!!.isBefore(startDate)) {
+                        error = "Data końcowa nie może być wcześniejsza niż początkowa."
+                        result = null
+                        return@Button
+                    }
+
+                    val totalDays = ChronoUnit.DAYS.between(startDate, endDate).toInt()
+                    val workdays = (0..totalDays).map { startDate!!.plusDays(it.toLong()) }
+                        .count { it.dayOfWeek.value in 1..5 }
+
+                    result = "Liczba dni: $totalDays\nDni robocze: $workdays"
+                    error = null
                 },
                 modifier = Modifier.padding(vertical = 12.dp)
             ) {
@@ -87,6 +95,48 @@ fun DateDiffScreen(navController: NavController) {
 
             error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
+            }
+        }
+
+        if (showStartPicker) {
+            DatePickerDialog(
+                onDismissRequest = { showStartPicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val millis = startDatePickerState.selectedDateMillis
+                        if (millis != null) {
+                            startDate = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+                        }
+                        showStartPicker = false
+                    }) {
+                        Text("OK")
+                    }
+                }
+            ) {
+                DatePicker(state = startDatePickerState)
+            }
+        }
+
+        if (showEndPicker) {
+            DatePickerDialog(
+                onDismissRequest = { showEndPicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val millis = endDatePickerState.selectedDateMillis
+                        if (millis != null) {
+                            endDate = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+                        }
+                        showEndPicker = false
+                    }) {
+                        Text("OK")
+                    }
+                }
+            ) {
+                DatePicker(state = endDatePickerState)
             }
         }
     }

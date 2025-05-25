@@ -14,7 +14,6 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 object PreferenceKeys {
     val EVENTS_LIST = stringPreferencesKey("events_list")
-    val DEFAULT_YEAR = stringPreferencesKey("default_year")
     val SHOW_DESCRIPTIONS = booleanPreferencesKey("show_descriptions")
     val ENABLE_NOTIFICATIONS = booleanPreferencesKey("enable_notifications")
 }
@@ -24,8 +23,6 @@ class DataStoreManager(private val context: Context) {
         .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeAdapter())
         .create()
 
-
-    // Save events JSON
     suspend fun saveEvents(events: List<Event>) {
         val eventsJson = gson.toJson(events)
         context.dataStore.edit { preferences ->
@@ -50,17 +47,6 @@ class DataStoreManager(private val context: Context) {
         context.dataStore.edit { it.remove(PreferenceKeys.EVENTS_LIST) }
     }
 
-    // Default Year
-    suspend fun saveDefaultYear(year: String) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferenceKeys.DEFAULT_YEAR] = year
-        }
-    }
-
-    val defaultYearFlow: Flow<String> = context.dataStore.data
-        .map { preferences -> preferences[PreferenceKeys.DEFAULT_YEAR] ?: "2024" }
-
-    // Show Descriptions
     suspend fun saveShowDescriptions(show: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferenceKeys.SHOW_DESCRIPTIONS] = show
@@ -70,7 +56,6 @@ class DataStoreManager(private val context: Context) {
     val showDescriptionsFlow: Flow<Boolean> = context.dataStore.data
         .map { preferences -> preferences[PreferenceKeys.SHOW_DESCRIPTIONS] ?: true }
 
-    // Enable Notifications
     suspend fun saveEnableNotifications(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferenceKeys.ENABLE_NOTIFICATIONS] = enabled
