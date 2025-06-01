@@ -25,7 +25,7 @@ object NotificationScheduler {
         }
 
         val intent = Intent(context, NotificationReceiver::class.java).apply {
-            putExtra(NotificationReceiver.EXTRA_TITLE, if (beforeStart) "Event starting soon" else "Event ending soon")
+            putExtra(NotificationReceiver.EXTRA_TITLE, if (beforeStart) "Event zaraz sie rozpocznie" else "Event zaraz sie skonczy")
             putExtra(NotificationReceiver.EXTRA_MESSAGE, "${event.title}\n${event.description}")
             putExtra(NotificationReceiver.EXTRA_NOTIFICATION_ID, generateRequestCode(event, beforeStart))
         }
